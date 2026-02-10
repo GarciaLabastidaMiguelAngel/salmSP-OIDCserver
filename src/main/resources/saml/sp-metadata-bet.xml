@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"
+                     entityID="http://localhost:8080/saml2/service-provider-metadata/bet">
+  <md:SPSSODescriptor
+      AuthnRequestsSigned="true"
+      WantAssertionsSigned="true"
+      protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+    
+    <!-- SP Signing Certificate -->
+    <md:KeyDescriptor use="signing">
+      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+        <ds:X509Data>
+          <ds:X509Certificate>
+            MIIDYDCCAkigAwIBAgIJANBSTH4SwXyMMA0GCSqGSIb3DQEBDAUAMF4xCzAJBgNV
+            BAYTAlVTMQ4wDAYDVQQIEwVTdGF0ZTENMAsGA1UEBxMEQ2l0eTEQMA4GA1UEChMH
+            RXhhbXBsZTEMMAoGA1UECxMDRGV2MRAwDgYDVQQDEwdTQU1MIFNQMB4XDTI2MDIw
+            MTAwNTgzM1oXDTM2MDEzMDAwNTgzM1owXjELMAkGA1UEBhMCVVMxDjAMBgNVBAgT
+            BVN0YXRlMQ0wCwYDVQQHEwRDaXR5MRAwDgYDVQQKEwdFeGFtcGxlMQwwCgYDVQQL
+            EwNEZXYxEDAOBgNVBAMTB1NBTUwgU1AwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+            ggEKAoIBAQCxnt/Rq1xIowsCn55On67S9MFjLrTZS8lPCkcv75z4TG0uODHQrW84
+            ERbw0zRV8DCgmMFXe5/CIF434I9loc2EtLYAIIDnQkXgZOYDy89eNyajdhzIytOY
+            rCIGByW9LObhFfKtK3kaEJ+X1m8drl0VXOcOoFZs9aullSgWr5BK9ep5YSQa9TWD
+            J97mt2itNic6PQwA8hpdLhQQ9flIRRyqkfMpK66COZNG4dkZMeqWMUcH4p4ictdv
+            tD3Alv0fd8XTjbGzkVxgOfj5bz+l+/ckbWU46/cMaqj0K6sfh2FFKDVR8Mgz7W0h
+            5uVD4zLrSOazXiaCuMEsn3MlYkVQde3jAgMBAAGjITAfMB0GA1UdDgQWBBSIQ++w
+            jeVwPIyYzZAFHWRkOxB72jANBgkqhkiG9w0BAQwFAAOCAQEATkjO8+sxR2fg8CbZ
+            ZgFxj5cheLIOggXOw6Xryhhi5Lalz5PFkUlE7QybeE/L3iYzN/ctQpC2Xoby42SP
+            74/qHzvAJeVbPDe9tt5GqQTxqcjRrVQrgmnK6Ubh5T/jysof5rdRyOvpkJ4CSVcz
+            WtgTqDssMIA34HtZrwh4EiQTXtlp9KzCmkF1j9MBG1O9FFJYLwa13WwqCHfcr99b
+            hizZK6wiVeXIWCxDG4sqP5mfMAUyANHgOpsSuyu+L2enCksklkfRcXXM+p+pRpnM
+            op9M4OvVQPtSkIECC9Qlfl7c0ZvY9R2vKqvhi1nHj1iZtrvdW6RoxBZQ1umcCn10
+            +PCBlQ==
+          </ds:X509Certificate>
+        </ds:X509Data>
+      </ds:KeyInfo>
+    </md:KeyDescriptor>
+    
+    <!-- SP Encryption Certificate (same as signing) -->
+    <md:KeyDescriptor use="encryption">
+      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+        <ds:X509Data>
+          <ds:X509Certificate>
+            MIIDYDCCAkigAwIBAgIJANBSTH4SwXyMMA0GCSqGSIb3DQEBDAUAMF4xCzAJBgNV
+            BAYTAlVTMQ4wDAYDVQQIEwVTdGF0ZTENMAsGA1UEBxMEQ2l0eTEQMA4GA1UEChMH
+            RXhhbXBsZTEMMAoGA1UECxMDRGV2MRAwDgYDVQQDEwdTQU1MIFNQMB4XDTI2MDIw
+            MTAwNTgzM1oXDTM2MDEzMDAwNTgzM1owXjELMAkGA1UEBhMCVVMxDjAMBgNVBAgT
+            BVN0YXRlMQ0wCwYDVQQHEwRDaXR5MRAwDgYDVQQKEwdFeGFtcGxlMQwwCgYDVQQL
+            EwNEZXYxEDAOBgNVBAMTB1NBTUwgU1AwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+            ggEKAoIBAQCxnt/Rq1xIowsCn55On67S9MFjLrTZS8lPCkcv75z4TG0uODHQrW84
+            ERbw0zRV8DCgmMFXe5/CIF434I9loc2EtLYAIIDnQkXgZOYDy89eNyajdhzIytOY
+            rCIGByW9LObhFfKtK3kaEJ+X1m8drl0VXOcOoFZs9aullSgWr5BK9ep5YSQa9TWD
+            J97mt2itNic6PQwA8hpdLhQQ9flIRRyqkfMpK66COZNG4dkZMeqWMUcH4p4ictdv
+            tD3Alv0fd8XTjbGzkVxgOfj5bz+l+/ckbWU46/cMaqj0K6sfh2FFKDVR8Mgz7W0h
+            5uVD4zLrSOazXiaCuMEsn3MlYkVQde3jAgMBAAGjITAfMB0GA1UdDgQWBBSIQ++w
+            jeVwPIyYzZAFHWRkOxB72jANBgkqhkiG9w0BAQwFAAOCAQEATkjO8+sxR2fg8CbZ
+            ZgFxj5cheLIOggXOw6Xryhhi5Lalz5PFkUlE7QybeE/L3iYzN/ctQpC2Xoby42SP
+            74/qHzvAJeVbPDe9tt5GqQTxqcjRrVQrgmnK6Ubh5T/jysof5rdRyOvpkJ4CSVcz
+            WtgTqDssMIA34HtZrwh4EiQTXtlp9KzCmkF1j9MBG1O9FFJYLwa13WwqCHfcr99b
+            hizZK6wiVeXIWCxDG4sqP5mfMAUyANHgOpsSuyu+L2enCksklkfRcXXM+p+pRpnM
+            op9M4OvVQPtSkIECC9Qlfl7c0ZvY9R2vKqvhi1nHj1iZtrvdW6RoxBZQ1umcCn10
+            +PCBlQ==
+          </ds:X509Certificate>
+        </ds:X509Data>
+      </ds:KeyInfo>
+    </md:KeyDescriptor>
+    
+    <!-- Single Logout Service -->
+    <md:SingleLogoutService
+        Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+        Location="http://localhost:8080/logout/saml2/slo"/>
+    
+    <!-- NameID Formats -->
+    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</md:NameIDFormat>
+    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
+    <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>
+    
+    <!-- Assertion Consumer Service (ACS) -->
+    <md:AssertionConsumerService
+        Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+        Location="http://localhost:8080/login/saml2/sso/bet"
+        index="0"
+        isDefault="true"/>
+  </md:SPSSODescriptor>
+</md:EntityDescriptor>

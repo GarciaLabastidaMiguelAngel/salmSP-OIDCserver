@@ -1,0 +1,45 @@
+server:
+  port: 0  # Random port for tests
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  
+  sql:
+    init:
+      mode: always
+  
+  # Redis for session and logout context
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+
+logging:
+  level:
+    root: WARN
+    org.springframework.security: INFO
+
+# OIDC
+oidc:
+  issuer: http://localhost:8080
+  keystore:
+    location: classpath:keystore/oidc-keystore.p12
+    password: changeit
+    alias: oidc
+    key-password: changeit
+
+# SAML
+saml:
+  keystore:
+    location: classpath:keystore/saml-keystore.p12
+    password: changeit
+    alias: saml
+    key-password: changeit
+  idp:
+    entity-id: http://www.okta.com/test-idp
+    sso-url: https://test-idp.example.com/sso/saml
+    verification-cert-alias: idp
