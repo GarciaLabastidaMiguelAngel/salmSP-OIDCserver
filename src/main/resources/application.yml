@@ -52,6 +52,45 @@ logging:
     org.opensaml: DEBUG
     com.authserver: DEBUG
 
+# Application-specific configuration
+app:
+  # Session Cookie Configuration
+  # Controls how the session cookie (SESSION/JSESSIONID) is emitted to the browser.
+  # Does NOT affect session storage (Redis remains unchanged).
+  session:
+    cookie:
+      # Cookie name
+      name: ${SESSION_COOKIE_NAME:SESSION}
+      
+      # Cookie domain (empty = not set, scoped to current domain)
+      # Example: ".example.com" for subdomain sharing
+      domain: ${SESSION_COOKIE_DOMAIN:}
+      
+      # Cookie path
+      path: ${SESSION_COOKIE_PATH:/}
+      
+      # HttpOnly flag (prevents JavaScript access)
+      http-only: ${SESSION_COOKIE_HTTPONLY:true}
+      
+      # Secure flag (requires HTTPS)
+      # Production: true (HTTPS required)
+      # Local dev: false (allows HTTP)
+      secure: ${SESSION_COOKIE_SECURE:true}
+      
+      # SameSite attribute (Lax, Strict, None)
+      # - Lax: Allows cross-site top-level navigation (recommended)
+      # - Strict: No cross-site requests
+      # - None: Allows all cross-site (requires secure=true)
+      same-site: ${SESSION_COOKIE_SAMESITE:Lax}
+      
+      # Cookie max-age in seconds (empty = session cookie)
+      # Session cookie: expires when browser closes
+      # Persistent cookie: set a positive value (e.g., 86400 for 24 hours)
+      max-age: ${SESSION_COOKIE_MAXAGE:}
+      
+      # Enable remember-me behavior (requires max-age to be set)
+      remember-me: ${SESSION_COOKIE_REMEMBERME:false}
+
 # OIDC Authorization Server Configuration (JDBC-backed with H2, Properties-based clients)
 oidc:
   issuer: ${OIDC_ISSUER:http://localhost:8080}

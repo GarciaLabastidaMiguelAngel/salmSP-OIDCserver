@@ -23,6 +23,20 @@ logging:
     root: WARN
     org.springframework.security: INFO
 
+# Application-specific configuration (TEST profile)
+app:
+  # Session Cookie Configuration for tests
+  # secure=false allows MockMvc to work without HTTPS
+  session:
+    cookie:
+      name: SESSION
+      path: /
+      http-only: true
+      secure: false  # MockMvc doesn't use HTTPS
+      same-site: Lax
+      max-age: ""
+      remember-me: false
+
 # OIDC
 oidc:
   issuer: http://localhost:8080
