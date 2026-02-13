@@ -273,24 +273,30 @@ public class OidcAuthorizationServerConfig {
     }
 
     /**
-     * Add session ID claim with automatic fallback strategy:
-     * 1. Check authorization attributes (explicit sid)
-     * 2. Fallback to current HTTP session (if available)
+     * Add session ID claim with priority strategy:
+     * 1. Check session attribute "sid" (set by Saml2SuccessHandler after SAML auth)
+     * 2. Check authorization attributes (explicit sid from OAuth2Authorization)
+     * 3. Fallback to current HTTP session ID (if available)
      */
     private void addSessionIdClaim(org.springframework.security.oauth2.jwt.JwtClaimsSet.Builder claims, 
                                    JwtEncodingContext context) {
         String sessionId = null;
 
-        // Try to get sid from authorization attributes (explicit)
-        OAuth2Authorization authorization = context.getAuthorization();
-        if (authorization != null) {
-            Object sidAttr = authorization.getAttribute("sid");
-            if (sidAttr instanceof String) {
-                sessionId = (String) sidAttr;
+        // Priority 1: Check session attribute (set by Saml2SuccessHandler)
+        sessionId = resolveSessionAttribute("sid");
+        
+        // Priority 2: Try to get sid from authorization attributes (explicit)
+        if (sessionId == null) {
+            OAuth2Authorization authorization = context.getAuthorization();
+            if (authorization != null) {
+                Object sidAttr = authorization.getAttribute("sid");
+                if (sidAttr instanceof String) {
+                    sessionId = (String) sidAttr;
+                }
             }
         }
 
-        // Fallback to current HTTP session
+        // Priority 3: Fallback to current HTTP session
         if (sessionId == null) {
             sessionId = resolveCurrentSessionId();
         }
@@ -299,6 +305,30 @@ public class OidcAuthorizationServerConfig {
         if (sessionId != null && !sessionId.isBlank()) {
             claims.claim("sid", sessionId);
         }
+    }
+    
+    /**
+     * Resolve attribute from current HTTP session.
+     * Returns null if no session exists or attribute is not found.
+     */
+    private String resolveSessionAttribute(String attributeName) {
+        try {
+            if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs) {
+                var request = attrs.getRequest();
+                if (request != null) {
+                    var session = request.getSession(false);
+                    if (session != null) {
+                        Object attr = session.getAttribute(attributeName);
+                        if (attr instanceof String) {
+                            return (String) attr;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignore - attribute resolution is optional
+        }
+        return null;
     }
 
     /**
@@ -323,22 +353,109 @@ public class OidcAuthorizationServerConfig {
     }
 
     /**
-     * Apply SAML claims to ID Token.
-     * Maps SAML attributes to standard OIDC claims.
+     * Apply SAML claims to ID Token with dual-source strategy:
+     * 1. Try to load SAML attributes from session (set by Saml2SuccessHandler)
+     * 2. Fallback to authentication principal if session data not available
+     * 
+     * This approach ensures claims are available even if authentication context is lost.
      */
     private void applySamlClaims(Saml2Authentication samlAuth, 
                                 org.springframework.security.oauth2.jwt.JwtClaimsSet.Builder claims) {
+        
+        // Strategy 1: Try to load SAML attributes from session (preferred)
+        Map<String, List<Object>> sessionAttributes = loadSamlAttributesFromSession();
+        if (sessionAttributes != null && !sessionAttributes.isEmpty()) {
+            applySamlClaimsFromSessionAttributes(sessionAttributes, claims);
+            
+            // Add auth_time from session if available
+            String authTimeStr = resolveSessionAttribute("saml_auth_time");
+            if (authTimeStr != null) {
+                try {
+                    claims.claim("auth_time", Long.parseLong(authTimeStr));
+                } catch (NumberFormatException e) {
+                    // Ignore invalid format
+                }
+            }
+            return;
+        }
+        
+        // Strategy 2: Fallback to authentication principal
         if (samlAuth == null || samlAuth.getPrincipal() == null) {
             return;
         }
 
-        // Extract SAML principal
         Object principalObj = samlAuth.getPrincipal();
         if (!(principalObj instanceof Saml2AuthenticatedPrincipal)) {
             return;
         }
 
         Saml2AuthenticatedPrincipal principal = (Saml2AuthenticatedPrincipal) principalObj;
+        applySamlClaimsFromPrincipal(principal, claims);
+    }
+    
+    /**
+     * Load SAML attributes from HTTP session (stored by Saml2SuccessHandler).
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, List<Object>> loadSamlAttributesFromSession() {
+        try {
+            if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs) {
+                var request = attrs.getRequest();
+                if (request != null) {
+                    var session = request.getSession(false);
+                    if (session != null) {
+                        Object attr = session.getAttribute("saml_attributes");
+                        if (attr instanceof Map) {
+                            return (Map<String, List<Object>>) attr;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignore - fallback to principal
+        }
+        return null;
+    }
+    
+    /**
+     * Apply SAML claims from session attributes (Map<String, List<Object>>).
+     */
+    private void applySamlClaimsFromSessionAttributes(Map<String, List<Object>> attributes, 
+                                                     org.springframework.security.oauth2.jwt.JwtClaimsSet.Builder claims) {
+        // Standard OIDC claims from SAML attributes
+        putIfPresent(claims, "preferred_username", 
+            firstValue(attributes, "preferred_username", "username", "uid"));
+        putIfPresent(claims, "name", 
+            firstValue(attributes, "name", "displayname", "displayName"));
+        putIfPresent(claims, "given_name", 
+            firstValue(attributes, "givenname", "firstname", "given_name", "givenName"));
+        putIfPresent(claims, "family_name", 
+            firstValue(attributes, "surname", "lastname", "family_name", "familyName"));
+
+        // Email with verification flag
+        String email = firstValue(attributes, "email", "emailaddress", "mail", "emailAddress");
+        if (email != null && !email.isBlank()) {
+            claims.claim("email", email);
+            claims.claim("email_verified", true);
+        }
+
+        // ACR - Authentication Context Class Reference
+        String acr = firstValue(attributes, "acr", "authncontextclassref", 
+            "authentication_context_class_ref", "AuthnContextClassRef");
+        putIfPresent(claims, "acr", acr);
+
+        // AMR - Authentication Methods Reference
+        List<String> amr = resolveAmrFromAttributes(attributes, acr);
+        if (!amr.isEmpty()) {
+            claims.claim("amr", amr);
+        }
+    }
+    
+    /**
+     * Apply SAML claims from Saml2AuthenticatedPrincipal (fallback).
+     */
+    private void applySamlClaimsFromPrincipal(Saml2AuthenticatedPrincipal principal, 
+                                             org.springframework.security.oauth2.jwt.JwtClaimsSet.Builder claims) {
 
         // Standard OIDC claims from SAML attributes
         putIfPresent(claims, "preferred_username", 
@@ -418,6 +535,80 @@ public class OidcAuthorizationServerConfig {
         }
 
         return amr;
+    }
+    
+    /**
+     * Resolve AMR from session attributes Map.
+     */
+    private List<String> resolveAmrFromAttributes(Map<String, List<Object>> attributes, String acr) {
+        List<String> amr = new ArrayList<>();
+
+        // Try to get AMR from SAML attributes
+        Object amrAttr = findAttributeInMap(attributes, "amr", "authnmethod", 
+            "authenticationmethod", "authentication_method", "AuthnMethod");
+        
+        if (amrAttr instanceof Collection) {
+            for (Object v : (Collection<?>) amrAttr) {
+                if (v != null && !v.toString().isBlank()) {
+                    amr.add(v.toString());
+                }
+            }
+        } else if (amrAttr != null && !amrAttr.toString().isBlank()) {
+            amr.add(amrAttr.toString());
+        }
+
+        // Fallback: infer from ACR if no explicit AMR
+        if (amr.isEmpty() && acr != null && !acr.isBlank()) {
+            String acrLower = acr.toLowerCase();
+            if (acrLower.contains("mfa") || acrLower.contains("multifactor")) {
+                amr.add("mfa");
+            } else if (acrLower.contains("otp")) {
+                amr.add("otp");
+            } else if (acrLower.contains("password") || acrLower.contains("pwd")) {
+                amr.add("pwd");
+            }
+        }
+
+        return amr;
+    }
+    
+    /**
+     * Find attribute in Map by multiple possible key names (case-insensitive).
+     */
+    private Object findAttributeInMap(Map<String, List<Object>> attributes, String... keys) {
+        if (attributes == null) {
+            return null;
+        }
+
+        for (String key : keys) {
+            for (Map.Entry<String, List<Object>> entry : attributes.entrySet()) {
+                if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(key)) {
+                    List<Object> values = entry.getValue();
+                    if (values != null && !values.isEmpty()) {
+                        return values.size() == 1 ? values.get(0) : values;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Get first non-blank string value from session attributes Map.
+     */
+    private String firstValue(Map<String, List<Object>> attributes, String... keys) {
+        Object value = findAttributeInMap(attributes, keys);
+        
+        if (value instanceof Collection) {
+            for (Object v : (Collection<?>) value) {
+                if (v != null && !v.toString().isBlank()) {
+                    return v.toString();
+                }
+            }
+            return null;
+        }
+        
+        return (value != null && !value.toString().isBlank()) ? value.toString() : null;
     }
 
     /**
